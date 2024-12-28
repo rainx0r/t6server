@@ -93,7 +93,7 @@ def setup_azure(args):
         sp = json.loads(result.stdout[block_start_idx:block_end_idx])
         env_file.writelines(
             [
-                "# TERRAFORM",
+                "# Terraform",
                 f"export ARM_CLIENT_ID = {sp['appId']}",
                 f"export ARM_CLIENT_SECRET = {sp['password']}",
                 f"export ARM_TENANT_ID = {sp['tenant']}",

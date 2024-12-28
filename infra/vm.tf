@@ -32,15 +32,24 @@ resource "azurerm_role_assignment" "vm_blob_data_reader" {
   principal_id         = azurerm_windows_virtual_machine.vm.identity[0].principal_id
 }
 
-# resource "azurerm_virtual_machine_extension" "run_setup_bat" {
-# <name                 = "run-setup-bat"
-# virtual_machine_id   = azurerm_windows_virtual_machine
-# publisher            = "Microsoft.Compute"
-# type                 = "CustomScriptExtension"
-#  type_handler_version = "2.0"
-#
-#  settings = jsonencode({
-#    "fileUris": ["${azurerm_storage_blob.setup_bat.url}"],
-#    "commandToExecute": "cmd /c setup.bat"
-#  })
-#}
+resource "azurerm_virtual_machine_extension" "setup_server" {
+  name                 = "run-setup-ps1"
+  virtual_machine_id   = azurerm_windows_virtual_machine.vm.id
+  publisher            = "Microsoft.Compute"
+  type                 = "CustomScriptExtension"
+  type_handler_version = "1.10"
+
+  protected_settings = jsonencode({
+    "commandToExecute" : "powershell.exe -ExecutionPolicy Unrestricted -File setup.ps1 -serverName \"${var.server_name}\" -serverKey \"${var.server_key}\" -serverPassword \"${var.server_password}\" -serverRconPassword \"${var.rcon_password}\"",
+    "managedIdentity" : {}
+  })
+
+  settings = jsonencode({
+    "fileUris" : [
+      "${azurerm_storage_blob.setup_ps1.url}",
+      "${azurerm_storage_blob.t6_zip.url}",
+      "${azurerm_storage_blob.start_bat.url}",
+      "${azurerm_storage_blob.server_cfg.url}"
+    ],
+  })
+}

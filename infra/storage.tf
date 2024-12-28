@@ -20,12 +20,12 @@ resource "azurerm_storage_container" "game_files" {
   container_access_type = "private"
 }
 
-resource "azurerm_storage_blob" "setup_bat" {
-  name                   = "setup.bat"
+resource "azurerm_storage_blob" "setup_ps1" {
+  name                   = "setup.ps1"
   storage_account_name   = azurerm_storage_account.sa.name
   storage_container_name = azurerm_storage_container.scripts.name
   type                   = "Block"
-  source                 = "${path.module}/../t6/setup.bat"
+  source                 = "${path.module}/../t6/setup.ps1"
 }
 
 resource "azurerm_storage_blob" "start_bat" {
@@ -36,18 +36,19 @@ resource "azurerm_storage_blob" "start_bat" {
   source                 = "${path.module}/../t6/start.bat"
 }
 
+
+resource "azurerm_storage_blob" "server_cfg" {
+  name                   = "server.cfg"
+  storage_account_name   = azurerm_storage_account.sa.name
+  storage_container_name = azurerm_storage_container.scripts.name
+  type                   = "Block"
+  source                 = "${path.module}/../t6/server.cfg"
+}
+
 resource "azurerm_storage_blob" "t6_zip" {
   name                   = "t6.zip"
   storage_account_name   = azurerm_storage_account.sa.name
   storage_container_name = azurerm_storage_container.game_files.name
   type                   = "Block"
   source                 = "${path.module}/../.secrets/t6.zip"
-}
-
-output "setup_bat_url" {
-  value = azurerm_storage_blob.setup_bat.url
-}
-
-output "start_bat_url" {
-  value = azurerm_storage_blob.start_bat.url
 }

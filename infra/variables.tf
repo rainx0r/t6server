@@ -16,20 +16,34 @@ variable "vm_size" {
 }
 
 variable "sku" {
-  type = string
-  default = "2022-datacenter-azure-edition"
+  type    = string
+  default = "2022-datacenter"
 }
 
 variable "vm_password" {
-  type = string
-  sensitive = true
-}
-
-variable "subscription_id" {
-  type = string
+  type      = string
   sensitive = true
 }
 
 variable "sa_name" {
   type = string
+}
+
+variable "server_name" {
+  type = string
+}
+
+variable "server_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "server_password" {
+  type      = string
+  sensitive = true
+}
+
+variable "rcon_password" {
+  type      = string
+  sensitive = true
 }
