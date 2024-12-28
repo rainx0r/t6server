@@ -14,3 +14,8 @@ variable "vm_size" {
   # A1v2 for testing
   default = "Standard_A1v2"
 }
+
+variable "vm_password" {
+  type = string
+  sensitive = true
+}

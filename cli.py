@@ -1,13 +1,116 @@
 import argparse
+import getpass
+import glob
+import json
+import pathlib
+import re
 import shutil
 import subprocess
 import sys
-import pathlib
-import getpass
-import glob
-
 
 CWD = pathlib.Path(__file__).parent
+
+
+def deploy(args):
+    # terraform init
+    # terraform plan ?
+    # terraform apply
+    ...
+
+
+def setup_azure(args):
+    azurecli_path = shutil.which("az")
+    terraform_path = shutil.which("terraform")
+    if not (azurecli_path and terraform_path):
+        raise ValueError("You need to have both Terraform and Azure CLI installed.")
+
+    result = subprocess.run(["az", "login"], capture_output=True, text=True)
+    if result.returncode != 0:
+        print("Error occurred when logging into Azure using the CLI:", result.stderr)
+        sys.exit(result.returncode)
+
+    env_file_path = CWD / ".env"
+    env_file_path.touch()
+    create_sp = False
+    env_file = open(env_file_path, mode="rw")
+    env_vars = re.findall(r"(\w+)\s?=\s?(\w+|\".+\")", env_file.read())
+
+    if len(env_vars) == 0:
+        create_sp = True
+    else:
+        sp_found = False
+        for key, _ in env_vars:
+            if key == "ARM_CLIENT_ID":
+                sp_found = True
+        create_sp = not sp_found
+
+    if create_sp:
+        azure_login_out = json.loads(result.stdout[result.stdout.index("[") :])
+        if len(azure_login_out) > 1:
+            for i, subscription in enumerate(azure_login_out):
+                print(f"{i}: {subscription['name']}")
+            subscription_idx = input(
+                f"Choose a subscription to use (0-{len(azure_login_out) - 1}, default=0): "
+            )
+            if not subscription_idx:
+                subscription_idx = "0"
+            subscription_idx = int(subscription_idx)
+            if subscription_idx < 0 or subscription_idx >= len(azure_login_out):
+                raise ValueError(f"Invalid subscription number {subscription_idx}.")
+        else:
+            subscription_idx = 0
+        subscription_id = azure_login_out[subscription_idx]["id"]
+        result = subprocess.run(
+            ["az", "account", "set", "--subscription", subscription_id]
+        )
+        if result.returncode != 0:
+            print("Error occurred when setting up the Azure subscription")
+            sys.exit(result.returncode)
+
+        result = subprocess.run(
+            [
+                "az",
+                "ad",
+                "sp",
+                "create-for-rbac",
+                '--role="Contributor"',
+                f'--scopes="/subscriptions/{subscription_id}"',
+            ],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0 or not result.stdout:
+            print(
+                "Error occurred when creating an Azure Service principal:",
+                result.stderr,
+            )
+            sys.exit(result.returncode)
+        block_start_idx, block_end_idx = (
+            result.stdout.index("{"),
+            result.stdout.index("}"),
+        )
+        sp = json.loads(result.stdout[block_start_idx:block_end_idx])
+        env_file.writelines(
+            [
+                "# TERRAFORM",
+                f"export ARM_CLIENT_ID = {sp['appId']}",
+                f"export ARM_CLIENT_SECRET = {sp['password']}",
+                f"export ARM_TENANT_ID = {sp['tenant']}",
+                f"export ARM_SUBSCRIPTION_ID = {subscription_id}",
+            ]
+        )
+
+        print("Azure successfully set up!")
+    else:
+        print(
+            (
+                "Looks like Azure is already set up. "
+                "Delete your .env file and run this command again "
+                "if you want to start from scratch."
+            )
+        )
+
+    env_file.close()
 
 
 def _from_args_or_prompt(args, attr: str, label: str, password: bool = False):
@@ -62,7 +165,9 @@ def generate_secrets(args):
 
         process = subprocess.run(bo2_install_command)
         if process.returncode != 0:
-            print("An error occured when running steamcmd and downloading the BO2 files.")
+            print(
+                "An error occured when running steamcmd and downloading the BO2 files."
+            )
             sys.exit(process.returncode)
 
         shutil.copy(steamcmd_path.parent / "bo2", CWD / ".secrets" / "bo2")
@@ -99,13 +204,17 @@ def generate_secrets(args):
 
         process = subprocess.run(ssh_keygen_command)
         if process.returncode != 0:
-            print("Failed to generate SSH key. Error occurred when running 'ssh-keygen'.")
+            print(
+                "Failed to generate SSH key. Error occurred when running 'ssh-keygen'."
+            )
             sys.exit(process.returncode)
 
 
 def main(args):
     if args.subcommand == "gen-secrets":
         generate_secrets(args)
+    elif args.subcommand == "setup-azure":
+        setup_azure(args)
     else:
         raise ValueError(f"Invalid subcommand: {args.subcomand}")
 
@@ -146,6 +255,15 @@ def parse_args():
         type=str,
         default=None,
         help="The password for the SSH key.",
+    )
+
+    _setup_azure = sub_parsers.add_parser(
+        "setup-azure",
+        help=(
+            "Sets up Azure for use with Terraform. "
+            "Generates the needed Service Principal and stores all the "
+            "necessary environment variables in a .env file."
+        ),
     )
 
     return parser.parse_args()

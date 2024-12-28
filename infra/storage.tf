@@ -16,7 +16,7 @@ resource "azurerm_storage_blob" "install_bat" {
   storage_account_name   = azurerm_storage_account.sa.name
   storage_container_name = azurerm_storage_container.scripts.name
   type                   = "Block"
-  source                 = file("${path.module}/../t6/setup.bat")
+  source                 = "${path.module}/../t6/setup.bat"
 }
 
 resource "azurerm_storage_blob" "start_bat" {
@@ -24,10 +24,9 @@ resource "azurerm_storage_blob" "start_bat" {
   storage_account_name   = azurerm_storage_account.sa.name
   storage_container_name = azurerm_storage_container.scripts.name
   type                   = "Block"
-  source                 = file("${path.module}/../t6/start.bat")
+  source                 = "${path.module}/../t6/start.bat"
 }
 
-# We'll output the blob URL so we can pass it to the extension
 output "setup_bat_url" {
   value = azurerm_storage_blob.setup_bat.url
 }
