@@ -9,11 +9,6 @@ resource "azurerm_windows_virtual_machine" "vm" {
     azurerm_network_interface.nic.id,
   ]
 
-  # admin_ssh_key {
-  #  username   = "edwardrichtofen"
-  #  public_key = file("${path.module}/../.secrets/id_ed5519.pub")
-  #}
-
   os_disk {
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
@@ -22,24 +17,30 @@ resource "azurerm_windows_virtual_machine" "vm" {
   source_image_reference {
     publisher = "MicrosoftWindowsServer"
     offer     = "WindowsServer"
-    sku       = "2022-datacenter-azure-edition"
+    sku       = var.sku
     version   = "latest"
   }
-}
 
-resource "azurerm_virtual_machine_extension" "run_setup_bat" {
-  name                 = "run-setup-bat"
-  virtual_machine_id   = azurerm_windows_virtual_machine
-  publisher            = "Microsoft.Compute"
-  type                 = "CustomScriptExtension"
-  type_handler_version = "2.0"
-
-  settings = <<SETTINGS
-  {
-    "fileUris": [
-      "${azurerm_storage_blob.setup_bat.url}"
-    ],
-    "commandToExecute": "cmd /c setup.bat"
+  identity {
+    type = "SystemAssigned"
   }
-  SETTINGS
 }
+
+resource "azurerm_role_assignment" "vm_blob_data_reader" {
+  scope                = azurerm_storage_account.sa.id
+  role_definition_name = "Storage Blob Data Reader"
+  principal_id         = azurerm_windows_virtual_machine.vm.identity[0].principal_id
+}
+
+# resource "azurerm_virtual_machine_extension" "run_setup_bat" {
+# <name                 = "run-setup-bat"
+# virtual_machine_id   = azurerm_windows_virtual_machine
+# publisher            = "Microsoft.Compute"
+# type                 = "CustomScriptExtension"
+#  type_handler_version = "2.0"
+#
+#  settings = jsonencode({
+#    "fileUris": ["${azurerm_storage_blob.setup_bat.url}"],
+#    "commandToExecute": "cmd /c setup.bat"
+#  })
+#}

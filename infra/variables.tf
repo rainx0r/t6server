@@ -15,7 +15,21 @@ variable "vm_size" {
   default = "Standard_A1v2"
 }
 
+variable "sku" {
+  type = string
+  default = "2022-datacenter-azure-edition"
+}
+
 variable "vm_password" {
   type = string
   sensitive = true
+}
+
+variable "subscription_id" {
+  type = string
+  sensitive = true
+}
+
+variable "sa_name" {
+  type = string
 }

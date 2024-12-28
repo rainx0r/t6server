@@ -74,7 +74,7 @@ def setup_azure(args):
                 "ad",
                 "sp",
                 "create-for-rbac",
-                '--role="Contributor"',
+                '--role="Owner"',
                 f'--scopes="/subscriptions/{subscription_id}"',
             ],
             capture_output=True,
@@ -205,31 +205,31 @@ def generate_secrets(args):
         print("Zipped t6 server data to .secrets/t6.zip")
         shutil.rmtree(local_bo2)
 
-    # 2) Generate the SSH key files
-    ssh_key_path = CWD / ".secrets" / "id_ed5519"
-
-    if not ssh_key_path.exists():
-        ssh_key_password = _from_args_or_prompt(
-            args, "ssh_key_password", "SSH key password", password=True
-        )
-
-        ssh_keygen_command = [
-            "ssh-keygen",
-            "-t",
-            "ed25519",
-            "-f",
-            str(CWD / ".secrets" / "id_ed5519"),
-            "-N",
-            ssh_key_password,
-            "-q",
-        ]
-
-        process = subprocess.run(ssh_keygen_command)
-        if process.returncode != 0:
-            print(
-                "Failed to generate SSH key. Error occurred when running 'ssh-keygen'."
-            )
-            sys.exit(process.returncode)
+    # # 2) Generate the SSH key files
+    # ssh_key_path = CWD / ".secrets" / "id_ed5519"
+    #
+    # if not ssh_key_path.exists():
+    #     ssh_key_password = _from_args_or_prompt(
+    #         args, "ssh_key_password", "SSH key password", password=True
+    #     )
+    #
+    #     ssh_keygen_command = [
+    #         "ssh-keygen",
+    #         "-t",
+    #         "ed25519",
+    #         "-f",
+    #         str(ssh_key_path),
+    #         "-N",
+    #         ssh_key_password,
+    #         "-q",
+    #     ]
+    #
+    #     process = subprocess.run(ssh_keygen_command)
+    #     if process.returncode != 0:
+    #         print(
+    #             "Failed to generate SSH key. Error occurred when running 'ssh-keygen'."
+    #         )
+    #         sys.exit(process.returncode)
 
 
 def main(args):
