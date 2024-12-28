@@ -7,6 +7,7 @@ import re
 import shutil
 import subprocess
 import sys
+import zipfile
 
 CWD = pathlib.Path(__file__).parent
 
@@ -127,12 +128,8 @@ def _from_args_or_prompt(args, attr: str, label: str, password: bool = False):
 
 def generate_secrets(args):
     # 1) Get BO2 files
-    local_bo2 = CWD / ".secrets" / "bo2"
-    if not local_bo2 or args.update:
-        steam_username = _from_args_or_prompt(args, "steam_username", "Steam username")
-        steam_password = _from_args_or_prompt(
-            args, "steam_password", "Steam password", password=True
-        )
+    local_bo2_zip = CWD / ".secrets" / "t6.zip"
+    if not local_bo2_zip.exists() or args.update:
         if not args.steamcmd_path:
             steamcmd_path = shutil.which("steamcmd")
             if not steamcmd_path:
@@ -144,33 +141,46 @@ def generate_secrets(args):
         else:
             steamcmd_path = args.steamcmd_path
 
-        bo2_install_command = [
-            steamcmd_path,
-            "@ShutdownOnFailedCommand",
-            "1",
-            "+@sSteamCmdForcePlatformType",
-            "windows",
-            "+@NoPromptForPassword",
-            "1",
-            "+force_install_dir",
-            "./bo2",
-            "+login",
-            steam_username,
-            steam_password,
-            "+app_update",
-            "212910",
-            "validate",
-            "+quit",
+        steamcmd_bo2 = steamcmd_path.parent / "bo2"
+        steamcmd_bo2_files = [
+            file for file in steamcmd_bo2.iterdir() if "steamapps" not in file.name
         ]
-
-        process = subprocess.run(bo2_install_command)
-        if process.returncode != 0:
-            print(
-                "An error occured when running steamcmd and downloading the BO2 files."
+        if not steamcmd_bo2.exists() or not steamcmd_bo2_files or args.update:
+            steam_username = _from_args_or_prompt(
+                args, "steam_username", "Steam username"
             )
-            sys.exit(process.returncode)
+            steam_password = _from_args_or_prompt(
+                args, "steam_password", "Steam password", password=True
+            )
 
-        shutil.copy(steamcmd_path.parent / "bo2", CWD / ".secrets" / "bo2")
+            bo2_install_command = [
+                steamcmd_path,
+                "@ShutdownOnFailedCommand",
+                "1",
+                "+@sSteamCmdForcePlatformType",
+                "windows",
+                "+@NoPromptForPassword",
+                "1",
+                "+force_install_dir",
+                "./bo2",
+                "+login",
+                steam_username,
+                steam_password,
+                "+app_update",
+                "212910",
+                "validate",
+                "+quit",
+            ]
+
+            process = subprocess.run(bo2_install_command)
+            if process.returncode != 0:
+                print(
+                    "An error occured when running steamcmd and downloading the BO2 files."
+                )
+                sys.exit(process.returncode)
+
+        local_bo2 = CWD / ".secrets" / "bo2"
+        shutil.copytree(steamcmd_bo2, local_bo2, dirs_exist_ok=True)
         for folder in ["video", "redist", "steamapps", "Soundtrack", "sound"]:
             if (local_bo2 / folder).exists():
                 shutil.rmtree(local_bo2 / folder)
@@ -182,6 +192,18 @@ def generate_secrets(args):
             file.stat().st_size for file in local_bo2.rglob("*") if file.is_file()
         ) / (1024**2)
         print("Trimmed BO2 directory size (MB): ", bo2_dir_size)
+
+        # Zip it up
+        with zipfile.ZipFile(
+            CWD / ".secrets" / "t6.zip", "w", zipfile.ZIP_DEFLATED
+        ) as zipf:
+            for root, _, files in local_bo2.walk():
+                for file in files:
+                    file_path = pathlib.Path(root) / file
+                    relative_path = file_path.relative_to(local_bo2)
+                    zipf.write(file_path, relative_path)
+        print("Zipped t6 server data to .secrets/t6.zip")
+        shutil.rmtree(local_bo2)
 
     # 2) Generate the SSH key files
     ssh_key_path = CWD / ".secrets" / "id_ed5519"
