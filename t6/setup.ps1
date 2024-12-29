@@ -21,19 +21,19 @@ Expand-Archive -Path "t6.zip" -DestinationPath "C:\server\t6"
 cd C:\server
 
 # Install choco and dependencies
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString("https://community.chocolatey.org/install.ps1"))
 C:\ProgramData\Chocolatey\choco.exe install vcredist140 directx -y
 
 # Update plutonium
-Invoke-WebRequest -Uri 'https://github.com/mxve/plutonium-updater.rs/releases/latest/download/plutonium-updater-x86_64-pc-windows-msvc.zip' -OutFile 'plutonium-updater.zip'
-Expand-Archive -Path 'plutonium-updater.zip' -DestinationPath '.\t6' -Force
+Invoke-WebRequest -Uri "https://github.com/mxve/plutonium-updater.rs/releases/latest/download/plutonium-updater-x86_64-pc-windows-msvc.zip" -OutFile "plutonium-updater.zip"
+Expand-Archive -Path "plutonium-updater.zip" -DestinationPath ".\t6" -Force
 Remove-Item "plutonium-updater.zip"
 cd t6
 .\plutonium-updater.exe -d .
 
 # Install configs
-Invoke-WebRequest -Uri 'https://github.com/xerxes-at/T6ServerConfigs/archive/master.zip' -OutFile 'configs.zip'
-Expand-Archive -Path 'configs.zip' -DestinationPath '.\configs' -Force
+Invoke-WebRequest -Uri "https://github.com/xerxes-at/T6ServerConfigs/archive/master.zip" -OutFile "configs.zip"
+Expand-Archive -Path "configs.zip" -DestinationPath ".\configs" -Force
 Remove-Item "configs.zip"
 Copy-Item -Path "configs\T6ServerConfigs-master\!updatePluto.bat" -Destination "!updatePluto.bat"
 Copy-Item -Path "configs\T6ServerConfigs-master\localappdata\Plutonium\*" -Destination "." -Recurse -Force

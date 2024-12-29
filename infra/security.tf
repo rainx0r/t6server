@@ -21,8 +21,20 @@ resource "azurerm_network_security_group" "nsg" {
   }
 
   security_rule {
+    name                       = "ICMPv4"
+    priority                   = 1002
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Icmp"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
     name                       = "RDP"
-    priority                   = 1001
+    priority                   = 1003
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
